@@ -16,19 +16,24 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalPr
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to login');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
+
+  console.log("LOGIN EMAIL:", email);
+  console.log("LOGIN PASSWORD:", password);
+  console.log("PASSWORD LENGTH:", password.length);
+
+  try {
+    await login(email.trim().toLowerCase(), password);
+    onClose();
+  } catch (err: any) {
+    setError(err.response?.data?.detail || 'Failed to login');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   if (!isOpen) return null;
 
