@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, ExternalLink, Music, Heart, Bookmark } from 'lucide-react';
 import ClusterBadge from '@/components/ui/ClusterBadge';
@@ -6,58 +6,38 @@ import { formatSimilarity, formatScore } from '@/lib/utils';
 import type { SongResponse } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/hooks/useUser';
+import { usePlayer } from '@/contexts/PlayerContext';
 import { likeSong, unlikeSong, saveSong, unsaveSong, logHistory } from '@/api/moodify';
 
 interface SongCardProps {
   song: SongResponse;
   index: number;
-  onPlayPreview?: (song: SongResponse) => void;
 }
 
 /**
  * Glassmorphism song card with album art, metadata, score badges,
  * Spotify link, and audio preview capability.
  */
-export default function SongCard({ song, index, onPlayPreview }: SongCardProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  
+export default function SongCard({ song, index }: SongCardProps) {
   const { user } = useAuth();
   const { likes, saves, refresh } = useUser();
+  const { currentSong, playSong, stopSong } = usePlayer();
+  
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [imgError, setImgError] = useState(false);
   
   const isLiked = likes.some(l => l.id === song.id);
   const isSaved = saves.some(s => s.id === song.id);
-
-  /* Cleanup audio on unmount */
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
+  const isPlaying = currentSong?.id === song.id && !!currentSong?.preview_url;
 
   function togglePreview() {
     if (!song.preview_url) return;
 
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+    if (isPlaying) {
+      stopSong();
     } else {
-      /* Stop any previously playing audio */
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      audioRef.current = new Audio(song.preview_url);
-      audioRef.current.volume = 0.5;
-      audioRef.current.play();
-      audioRef.current.onended = () => setIsPlaying(false);
-      setIsPlaying(true);
-      onPlayPreview?.(song);
+      playSong(song);
       
       // Log history if user is logged in
       if (user && song.id) {
