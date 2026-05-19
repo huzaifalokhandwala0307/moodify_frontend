@@ -36,7 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('moodify_auth_token', idToken);
           setToken(idToken);
 
-          // 2. Fetch/Lazy-provision user profile with UUID mapping in the backend
+          // 2. Clear any stale user cache from old UUID5-based sessions
+          localStorage.removeItem('moodify_user');
+
+          // 3. Fetch/Lazy-provision user profile from backend (id = Firebase UID)
           const profile = await getUserProfile('me');
           const loggedUser = { 
             id: profile.id, 
@@ -47,6 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('moodify_user', JSON.stringify(loggedUser));
         } catch (err) {
           console.error('[Moodify Auth] Session restoration failed:', err);
+          // Clear stale storage before logout to prevent cache poisoning on next load
+          localStorage.removeItem('moodify_auth_token');
+          localStorage.removeItem('moodify_user');
           logout();
         }
       } else {
